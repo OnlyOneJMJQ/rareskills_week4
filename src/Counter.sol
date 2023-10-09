@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "forge-std/console.sol";
+
 contract Counter {
     struct G1Point {
         uint256 x;
@@ -13,22 +15,16 @@ contract Counter {
     }
 
     uint256 order = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 PQ_PRIME = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
     G1Point G1 = G1Point(1, 2);
 
-    /// @dev Calculate inverse (x, -y) of point (x, y).
-    /// @param _x coordinate x of P1
-    /// @param _y coordinate y of P1
-    /// @param _pp the modulus
-    /// @return (x, -y)
-    function ecInv(
-            uint256 _x,
-            uint256 _y,
-            uint256 _pp
-        ) 
-        internal pure 
-        returns (uint256, uint256) 
-    {
-        return (_x, (_pp - _y) % _pp);
+    function negate(G1Point memory p) public view returns (G1Point memory) {
+        // The prime q in the base field F_q for G1
+        if (p.x == 0 && p.y == 0) {
+            return G1Point(0, 0);
+        } else {
+            return G1Point(p.x, PQ_PRIME - (p.y % PQ_PRIME));
+        }
     }
 
     /// @dev Adds two EC points together and returns the resulting point.
@@ -38,7 +34,7 @@ contract Counter {
     /// @param y2 The y coordinate of the second point
     /// @return x The x coordinate of the resulting point
     /// @return y The y coordinate of the resulting point
-    function ec_add(uint256 x1, uint256 y1, uint256 x2, uint256 y2) internal view returns (uint256 x, uint256 y) {
+    function ec_add(uint256 x1, uint256 y1, uint256 x2, uint256 y2) public view returns (uint256 x, uint256 y) {
         (bool ok, bytes memory result) = address(6).staticcall(abi.encode(x1, y1, x2, y2));
         require(ok, "add failed");
         (x, y) = abi.decode(result, (uint256, uint256));
@@ -120,13 +116,12 @@ contract Counter {
     ) public view returns (bool verified) {
         G1Point memory X1 = calc_X1(x1, x2, x3);
 
-        (uint256 gamma1x, uint256 gamma1y) = (18029695676650738226693292988307914797657423701064905010927197838374790804409, 14583779054894525174450323658765874724019480979794335525732096752006891875705);
-        (uint256 gamma2x, uint256 gamma2y) = (2140229616977736810657479771656733941598412651537078903776637920509952744750, 11474861747383700316476719153975578001603231366361248090558603872215261634898);
-        (uint256[2] memory gammarecx, uint256[2] memory gammarecy) = ([gamma1x, gamma1y], [gamma2x, gamma2y]);
-        G2Point memory gamma = G2Point(gammarecx, gammarecy);
+        G2Point memory gamma = G2Point(
+            [18029695676650738226693292988307914797657423701064905010927197838374790804409, 14583779054894525174450323658765874724019480979794335525732096752006891875705],
+            [2140229616977736810657479771656733941598412651537078903776637920509952744750, 11474861747383700316476719153975578001603231366361248090558603872215261634898]
+        );
 
-        (uint256 negAx, uint256 negAy) = ecInv(A.x, A.y, order);
-        G1Point memory negA = G1Point(negAx, negAy);
+        G1Point memory negA = negate(A);
 
         verified = pairing(negA, B, alpha, beta, X1, gamma, C1, delta);
     }
