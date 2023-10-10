@@ -83,7 +83,7 @@ contract Counter {
 
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            success := staticcall(sub(gas(), 2000), 8, add(input, 0x20), mul(inputSize, 0x20), out, 0x20)
+            success := staticcall(sub(gas(), 2000), 8, add(input, 0x20), mload(inputSize), out, 0x20)
             // Use "invalid" to make gas estimation work
             switch success case 0 { invalid() }
         }
@@ -111,7 +111,7 @@ contract Counter {
         uint256 x1,
         uint256 x2,
         uint256 x3,
-        G1Point calldata C1,
+        G1Point calldata C,
         G2Point calldata delta
     ) public view returns (bool verified) {
         G1Point memory X1 = calc_X1(x1, x2, x3);
@@ -123,6 +123,6 @@ contract Counter {
 
         G1Point memory negA = negate(A);
 
-        verified = pairing(negA, B, alpha, beta, X1, gamma, C1, delta);
+        verified = pairing(negA, B, alpha, beta, X1, gamma, C, delta);
     }
 }
