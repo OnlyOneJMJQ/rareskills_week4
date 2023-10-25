@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/console.sol";
 
-contract Counter {
+contract ECPairing {
     struct G1Point {
         uint256 x;
         uint256 y;
